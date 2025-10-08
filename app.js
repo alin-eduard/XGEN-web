@@ -1,14 +1,121 @@
-document.getElementById("generateBtn").addEventListener("click", async () => {
-  const downloadBtn = document.getElementById("downloadBtn");
+// Elemente DOM
+const selectBtn = document.getElementById("selectFilesBtn");
+const fileInput = document.getElementById("txtFiles");
+const fileNamesSpan = document.getElementById("fileNames");
+const generateBtn = document.getElementById("generateBtn");
+const downloadBtn = document.getElementById("downloadBtn");
 
-  // Ascunde butonul la fiecare click
+// File select
+selectBtn.addEventListener("click", () => fileInput.click());
+fileInput.addEventListener("change", () => {
+  const files = Array.from(fileInput.files).map(f => f.name);
+  fileNamesSpan.textContent = files.length ? files.join(", ") : "Niciun fișier selectat";
+});
+
+// Parsează fișier TXT într-un obiect config
+function parseTxt(txtContent) {
+  const data = {};
+  let currentKey = null;
+  let currentLines = [];
+
+  txtContent.split(/\r?\n/).forEach(line => {
+    line = line.trim();
+    if (!line) return;
+
+    if (line.startsWith("[") && line.endsWith("]")) {
+      if (currentKey) data[currentKey] = currentLines.join("\n");
+      currentKey = line.slice(1, -1);
+      currentLines = [];
+    } else {
+      currentLines.push(line);
+    }
+  });
+
+  if (currentKey) data[currentKey] = currentLines.join("\n");
+  return data;
+}
+
+// Generare prezentare PPTX
+function generatePptx(settings, config) {
+  const pptx = new PptxGenJS();
+  pptx.defineLayout({ name: 'custom', width: settings.slide.width, height: settings.slide.height });
+  pptx.layout = 'custom';
+
+  const fontColor = settings.text.color;
+  const bgColor = settings.slide.color;
+  const margin = settings.slide.margin;
+
+  const order = config["order"] ? config["order"].split(",") : [];
+  if (!order.length) order.push("default");
+
+  const slides = [];
+
+  // Creăm slide-urile conform order
+  order.forEach(key => {
+    const text = config[key] || "";
+    const isRefren = key.startsWith("r");
+
+    const slide = pptx.addSlide();
+    slide.background = { fill: bgColor };
+
+    // Text principal (versuri)
+    slide.addText(text, {
+      x: margin,
+      y: margin,
+      w: settings.slide.width - margin * 2,
+      h: settings.slide.height - margin * 2,
+      fontSize: settings.text.size,
+      fontFace: settings.text.font,
+      color: fontColor,
+      valign: 'middle',
+      align: 'center',
+      lineSpacing: settings.text.spacing,
+      italic: isRefren && settings.refren_italic
+    });
+
+    slides.push(slide);
+  });
+
+  // Gama: primul slide
+  if (config.g && slides.length > 0) {
+    slides[0].addText(config.g, {
+      x: margin,
+      y: 0,                  // sus
+      w: 2,                   // box mic
+      h: margin,              // înălțime mică
+      fontSize: settings.text.gama_font,
+      fontFace: settings.text.font,
+      color: fontColor,
+      align: 'left',
+      valign: 'bottom'        // lipit de partea de jos a textbox-ului mic
+    });
+  }
+
+  // Amin: ultimul slide
+  if (slides.length > 0) {
+    const lastSlide = slides[slides.length - 1];
+    lastSlide.addText("Amin", {
+      x: settings.slide.width - margin - 2, // colț dreapta
+      y: settings.slide.height - margin,    // jos
+      w: 2,                                 // box mic
+      h: margin,                             // înălțime mică
+      fontSize: settings.text.amin_font,
+      fontFace: settings.text.font,
+      color: fontColor,
+      align: 'right',
+      valign: 'top'                          // lipit de partea de sus a textbox-ului
+    });
+  }
+
+  return pptx;
+}
+
+// Generate + ZIP
+generateBtn.addEventListener("click", async () => {
   downloadBtn.style.display = "none";
 
-  const txtFiles = document.getElementById("txtFiles").files;
-  if (!txtFiles.length) {
-    alert("Încarcă fișierele TXT!");
-    return;
-  }
+  const txtFiles = fileInput.files;
+  if (!txtFiles.length) return alert("Încarcă fișierele TXT!");
 
   const settings = {
     slide: {
@@ -41,98 +148,9 @@ document.getElementById("generateBtn").addEventListener("click", async () => {
   }
 
   const zipBlob = await zip.generateAsync({ type: "blob" });
+  const url = URL.createObjectURL(zipBlob);
 
-  // Afișează din nou butonul download după generare
-  downloadBtn.style.display = "block";
-  downloadBtn.onclick = () => {
-    const a = document.createElement("a");
-    a.href = URL.createObjectURL(zipBlob);
-    a.download = "prezentari.zip";
-    a.click();
-  };
+  downloadBtn.href = url;
+  downloadBtn.download = "prezentari.zip";
+  downloadBtn.style.display = "inline-block";
 });
-
-// Funcție pentru parsarea TXT-ului
-function parseTxt(text) {
-  const data = {};
-  let currentKey = null;
-  const lines = text.replace(/\r\n/g, "\n").split("\n");
-  for (let line of lines) {
-    const trimmed = line.trim();
-    if (!trimmed) continue;
-    if (trimmed.startsWith("[") && trimmed.endsWith("]")) {
-      currentKey = trimmed.slice(1, -1);
-      data[currentKey] = "";
-    } else if (currentKey) {
-      data[currentKey] += (data[currentKey] ? "\n" : "") + line;
-    }
-  }
-  return data;
-}
-
-// Funcție pentru generare PPTX
-function generatePptx(settings, config) {
-  const pptx = new PptxGenJS();
-
-  pptx.defineLayout({ name: "CUSTOM", width: settings.slide.width, height: settings.slide.height });
-  pptx.layout = "CUSTOM";
-
-  let orderKeys = [];
-  if (config.order) orderKeys = config.order.split(",").map(k => k.trim()).filter(Boolean);
-  orderKeys = orderKeys.filter(k => k !== "order" && k !== "g");
-
-  for (let key of orderKeys) {
-    if (!config[key]) continue;
-    const isRefren = key.startsWith("r");
-    const slide = pptx.addSlide();
-    slide.background = { color: settings.slide.color };
-    slide.addText(config[key], {
-      x: settings.slide.margin,
-      y: settings.slide.margin,
-      w: settings.slide.width - 2 * settings.slide.margin,
-      h: settings.slide.height - 2 * settings.slide.margin,
-      fontSize: settings.text.size,
-      fontFace: settings.text.font,
-      color: settings.text.color,
-      align: "center",
-      valign: "middle",
-      lineSpacing: settings.text.spacing,
-      italic: isRefren && settings.refren_italic
-    });
-  }
-
-  const amin_width = 2;
-
-  // Adaugare gama (sus pe primul slide)
-  if (config.g) {
-    if (pptx.slides.length === 0) pptx.addSlide().background = { color: settings.slide.color };
-    pptx.slides[0].addText(config.g, {
-      x: settings.slide.margin,
-      y: 0,
-      w: amin_width,
-      h: settings.slide.margin,
-      fontSize: settings.text.gama_font,
-      fontFace: settings.text.font,
-      color: settings.text.color,
-      align: "left",
-      valign: "bottom"
-    });
-  }
-
-  // Adaugare Amin pe ultimul slide
-  if (pptx.slides.length === 0) pptx.addSlide().background = { color: settings.slide.color };
-  const lastSlide = pptx.slides[pptx.slides.length - 1];
-  lastSlide.addText("Amin", {
-    x: settings.slide.width - settings.slide.margin - amin_width,
-    y: settings.slide.height - settings.slide.margin,
-    w: amin_width,
-    h: settings.slide.margin,
-    fontSize: settings.text.amin_font,
-    fontFace: settings.text.font,
-    color: settings.text.color,
-    align: "right",
-    valign: "top"
-  });
-
-  return pptx;
-}

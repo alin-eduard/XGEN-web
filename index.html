@@ -13,12 +13,14 @@
 
     <!-- Secțiune upload + buton -->
     <div class="section top-section">
-      <label for="txtFiles">Încarcă fișierele TXT:</label>
-      <input type="file" id="txtFiles" multiple accept=".txt">
-      <button id="generateBtn">Generează Prezentările</button>
+      <div class="file-upload">
+        <button id="selectFilesBtn">Selectează fișiere TXT</button>
+        <span id="fileNames">Niciun fișier selectat</span>
+        <input type="file" id="txtFiles" multiple accept=".txt" style="display:none;">
+      </div>
 
-      <!-- Buton download (ascuns inițial) -->
-      <button id="downloadBtn" style="display:none;">Descarcă Prezentările</button>
+      <button id="generateBtn">Generează Prezentările</button>
+      <a id="downloadBtn" style="display:none;">Descarcă Prezentările</a>
     </div>
 
     <!-- Secțiune setări -->
