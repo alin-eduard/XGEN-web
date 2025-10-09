@@ -2,27 +2,29 @@
 <html lang="ro">
 <head>
   <meta charset="UTF-8">
-  <title>Generator PPTX din fișiere TXT</title>
+  <title>PowerPoint Generator</title>
   <link rel="stylesheet" href="style.css">
   <script src="https://cdn.jsdelivr.net/npm/jszip@3.7.1/dist/jszip.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/pptxgenjs@3.11.0/dist/pptxgen.min.js"></script>
 </head>
 <body>
   <div class="container">
-    <h1>Generator PowerPoint din fișiere TXT</h1>
+    <h1>PowerPoint Generator</h1>
 
+    <hr>
     <!-- Secțiune upload + buton -->
     <div class="section top-section">
       <div class="file-upload">
-        <button id="selectFilesBtn">Selectează fișiere TXT</button>
-        <span id="fileNames">Niciun fișier selectat</span>
+        <button id="selectFilesBtn">Select txt files</button>
+        <span id="fileNames">No selected files</span>
         <input type="file" id="txtFiles" multiple accept=".txt" style="display:none;">
       </div>
 
-      <button id="generateBtn">Generează Prezentările</button>
-      <a id="downloadBtn" style="display:none;">Descarcă Prezentările</a>
+      <button id="generateBtn">Generate</button>
+      <a id="downloadBtn" style="display:none;">Download</a>
     </div>
 
+    <hr>
     <!-- Secțiune setări -->
     <div class="section settings-section">
       <h2>Setări Slide</h2>
@@ -48,6 +50,7 @@
         <label for="refrenItalic">Refren italic</label>
       </div>
     </div>
+    <hr>
 
     <footer>© 2025 Generator PPTX Web | creat cu PptxGenJS</footer>
   </div>
